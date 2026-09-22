@@ -1,0 +1,43 @@
+# ==============================================================================
+# Frigate VMS Lab - Optional Standalone go2rtc Configuration
+# Usage: OPTIONAL / ADVANCED EXPERIMENT ONLY
+# ==============================================================================
+# Upstream Project: go2rtc (https://github.com/AlexxIT/go2rtc)
+#
+# NOTE: Frigate includes an integrated go2rtc instance by default.
+# This standalone configuration file is NOT required for standard lab deployments.
+# It is provided exclusively for advanced comparative experiments measuring:
+#   Integrated go2rtc (within Frigate container)
+#     vs.
+#   Decoupled go2rtc (standalone container forwarding to Frigate)
+#
+# Safe Placeholders:
+# - CAMERA_1_HOST, CAMERA_2_HOST
+# - CAMERA_USERNAME, CAMERA_PASSWORD (or environment variables)
+# - STREAM_PATH_SUB, STREAM_PATH_MAIN
+# ==============================================================================
+
+api:
+  listen: ":1984" # Default standalone go2rtc Web UI and REST API
+
+rtsp:
+  listen: ":8554" # RTSP restreaming server
+
+webrtc:
+  listen: ":8555" # WebRTC signalling and media transport
+
+streams:
+  # Camera 1 Feeds
+  camera_1_sub:
+    - rtsp://CAMERA_USERNAME:${RTSP_PASSWORD}@CAMERA_1_HOST/STREAM_PATH_SUB
+  camera_1_main:
+    - rtsp://CAMERA_USERNAME:${RTSP_PASSWORD}@CAMERA_1_HOST/STREAM_PATH_MAIN
+
+  # Camera 2 Feeds
+  camera_2_sub:
+    - rtsp://CAMERA_USERNAME:${RTSP_PASSWORD}@CAMERA_2_HOST/STREAM_PATH_SUB
+  camera_2_main:
+    - rtsp://CAMERA_USERNAME:${RTSP_PASSWORD}@CAMERA_2_HOST/STREAM_PATH_MAIN
+
+log:
+  level: info

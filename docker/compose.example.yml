@@ -1,0 +1,41 @@
+# ==============================================================================
+# Frigate VMS Lab - Docker Compose Example
+# Architecture: Frigate with Integrated go2rtc
+# ==============================================================================
+# Notes:
+# 1. Frigate embeds its own integrated go2rtc instance by default.
+#    A separate standalone go2rtc container is NOT needed for standard deployments.
+# 2. Variable interpolation syntax distinction:
+#    - Here in compose.yml, Docker uses: ${VARIABLE_NAME}
+#    - Inside frigate.yml, Frigate uses: {FRIGATE_VARIABLE_NAME}
+# 3. Target Environment: Supported Linux Docker host.
+#    (WSL2 / Windows is an EXPERIMENTAL / DEVELOPMENT ENVIRONMENT).
+# ==============================================================================
+
+services:
+  frigate:
+    container_name: frigate
+    privileged: true
+    restart: unless-stopped
+    image: ghcr.io/blakeblackshear/frigate:stable
+    shm_size: "256mb" # Adjust based on camera resolution and stream count
+    devices:
+      # Optional: Hardware acceleration devices (uncomment if validating hardware acceleration)
+      # - /dev/dri/renderD128:/dev/dri/renderD128 # Intel VAAPI / QSV
+      # - /dev/apex_0:/dev/apex_0               # Google Coral PCIe TPU
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./configs/frigate.yml:/config/config.yml:ro
+      - ./storage:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000 # 1GB RAM cache for recording segments
+    ports:
+      - "5000:5000"       # Frigate Web UI & REST API
+      - "8554:8554"       # Integrated go2rtc RTSP restreaming feeds
+      - "8555:8555/tcp"   # Integrated go2rtc WebRTC signalling
+      - "8555:8555/udp"   # Integrated go2rtc WebRTC media
+    environment:
+      # Pass through credential environment variables for Frigate {FRIGATE_...} substitution
+      FRIGATE_RTSP_PASSWORD: ${FRIGATE_RTSP_PASSWORD}

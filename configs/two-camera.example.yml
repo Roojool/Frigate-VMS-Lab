@@ -1,0 +1,79 @@
+# ==============================================================================
+# Frigate VMS Lab - Dual-Camera Scaling Configuration
+# Experiment: EXP-003 (Multi-Camera Resource Scaling: 2-Camera Condition)
+# ==============================================================================
+# Upstream Software: Frigate (https://github.com/blakeblackshear/frigate)
+#
+# Placeholder Convention:
+# - Camera 1: CAMERA_1_HOST
+# - Camera 2: CAMERA_2_HOST
+# - Credentials: CAMERA_USERNAME and {FRIGATE_RTSP_PASSWORD}
+# - Paths: STREAM_PATH_SUB, STREAM_PATH_MAIN
+# ==============================================================================
+
+mqtt:
+  enabled: false
+
+# Integrated go2rtc configuration mapping both camera streams
+go2rtc:
+  streams:
+    cam1_sub:
+      - rtsp://CAMERA_USERNAME:{FRIGATE_RTSP_PASSWORD}@CAMERA_1_HOST/STREAM_PATH_SUB
+    cam1_main:
+      - rtsp://CAMERA_USERNAME:{FRIGATE_RTSP_PASSWORD}@CAMERA_1_HOST/STREAM_PATH_MAIN
+    cam2_sub:
+      - rtsp://CAMERA_USERNAME:{FRIGATE_RTSP_PASSWORD}@CAMERA_2_HOST/STREAM_PATH_SUB
+    cam2_main:
+      - rtsp://CAMERA_USERNAME:{FRIGATE_RTSP_PASSWORD}@CAMERA_2_HOST/STREAM_PATH_MAIN
+
+cameras:
+  camera_1:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/cam1_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+        - path: rtsp://127.0.0.1:8554/cam1_main
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+    detect:
+      enabled: true
+      width: 1280
+      height: 720
+      fps: 5
+    record:
+      enabled: true
+      retain:
+        days: 3
+        mode: all
+
+  camera_2:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/cam2_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+        - path: rtsp://127.0.0.1:8554/cam2_main
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+    detect:
+      enabled: true
+      width: 1280
+      height: 720
+      fps: 5
+    record:
+      enabled: true
+      retain:
+        days: 3
+        mode: all
+
+detectors:
+  cpu_detector:
+    type: cpu
+    num_threads: 4
+
+version: 0.14
