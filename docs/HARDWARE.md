@@ -16,7 +16,7 @@ When publishing experimental benchmark runs, record the physical host topology u
 | **Host RAM** | Installed memory & technology | 32 GB DDR4-3200 CL16 |
 | **Operating System** | OS distribution & kernel version | Ubuntu 24.04 LTS (Kernel 6.8.0) |
 | **Docker Engine** | Container runtime & build version | Docker Community 26.1.1 |
-| **Frigate Version** | Upstream container release tag | `0.14.1` (`ghcr.io/blakeblackshear/frigate:stable`) |
+| **Frigate Version** | Upstream container release tag | `0.18.0` (`ghcr.io/blakeblackshear/frigate:0.18.0`) |
 | **Camera Count** | Physical cameras under test | 2 cameras |
 | **Camera Model(s)** | Sensor / make / model | 4MP IP PoE Turret (Model sanitized) |
 | **Source Resolution** | Ingest stream dimensions | 2560×1440 @ 20 fps (Main) / 704×480 @ 15 fps (Sub) |

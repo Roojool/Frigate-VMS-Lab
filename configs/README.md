@@ -2,15 +2,32 @@
 
 This directory contains sanitized, reproducible configuration templates for Video Management System experimentation with Frigate and go2rtc.
 
+- **Baseline Reference Version**: Configured for **Frigate 0.18.0**. Future upstream versions may require config/schema updates.
+
 ---
 
 ## Configuration Inventory
 
 | File | Purpose | Architecture |
 | :--- | :--- | :--- |
-| [`frigate.example.yml`](file:///configs/frigate.example.yml) | Baseline 1-camera research profile (EXP-001) | Frigate with integrated go2rtc |
-| [`two-camera.example.yml`](file:///configs/two-camera.example.yml) | Multi-camera scaling profile (EXP-003) | Frigate with integrated go2rtc |
-| [`go2rtc.example.yml`](file:///configs/go2rtc.example.yml) | Optional standalone go2rtc profile | Decoupled go2rtc for comparative experiments |
+| [`frigate.example.yml`](frigate.example.yml) | Baseline 1-camera research profile (EXP-001) | Frigate with integrated go2rtc |
+| [`two-camera.example.yml`](two-camera.example.yml) | Multi-camera scaling profile (EXP-003) | Frigate with integrated go2rtc |
+| [`go2rtc.example.yml`](go2rtc.example.yml) | Optional standalone go2rtc profile | Decoupled go2rtc for comparative experiments |
+
+---
+
+## Local Configuration Workflow
+
+To prevent accidental commits of real camera credentials or internal network IPs:
+
+1. **`frigate.example.yml`**: Committed, sanitized reference template.
+2. **`frigate.local.yml`**: User-specific local deployment configuration. This filename is included in `.gitignore` and must never be committed.
+
+Create your local instance before running:
+
+```bash
+cp configs/frigate.example.yml configs/frigate.local.yml
+```
 
 ---
 

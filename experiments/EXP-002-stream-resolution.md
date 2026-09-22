@@ -10,13 +10,16 @@ Quantify the relationship between detect stream decode resolution and system res
 
 ## HYPOTHESIS
 
-Increasing the detect stream resolution from 640×360 to 1920×1080 will result in a non-linear (super-linear) increase in software video decode CPU utilization and shared memory consumption, with increased probability of `skipped_fps > 0` on entry-level host CPUs, without a proportional increase in object detection precision for standard surveillance ranges.
+Increasing the detect stream resolution from 640×360 to 1920×1080 will result in higher software video decode CPU utilization and shared memory consumption, with increased likelihood of `skipped_fps > 0` on entry-level host CPUs.
+
+> [!NOTE]
+> Ground-truth object detection accuracy evaluation (e.g. mAP or recall curves against labeled test datasets) is designated as future work. The current lab tooling measures computational decode throughput, frame pacing, and resource consumption.
 
 ---
 
 ## CONTROLLED VARIABLES
 
-- **Upstream Engine**: Frigate `v0.14+` running in Linux Docker container.
+- **Upstream Engine**: Frigate `v0.18.0` running in Linux Docker container.
 - **Detector**: Software CPU detector (2 threads).
 - **Target Frame Rate**: 5 fps for detection across all conditions.
 - **Recording Stream**: Mainstream recording disabled to isolate detect pipeline costs.
@@ -49,8 +52,11 @@ Increasing the detect stream resolution from 640×360 to 1920×1080 will result 
 ## PROCEDURE
 
 For each condition ($A, B, C$):
-1. Configure `detect.width` and `detect.height` in `frigate.yml` corresponding to the condition.
-2. Restart the Frigate container.
+1. Configure `detect.width` and `detect.height` in `configs/frigate.local.yml` corresponding to the condition.
+2. Restart the Frigate container:
+   ```bash
+   docker compose -f docker/compose.example.yml restart
+   ```
 3. Allow a 30-second warm-up stabilization window.
 4. Execute collection:
    ```bash
@@ -59,7 +65,7 @@ For each condition ($A, B, C$):
      --duration 300 \
      --warmup 30 \
      --interval 1.0 \
-     --frigate-url http://localhost:5000 \
+     --frigate-url http://127.0.0.1:5000 \
      --container frigate \
      --output results/EXP-002_cond_<A|B|C>.json \
      --csv results/EXP-002_cond_<A|B|C>.csv
@@ -89,6 +95,7 @@ NOT YET MEASURED
 
 ## LIMITATIONS
 
+- **Accuracy Scope**: Labeled ground-truth detection accuracy (mAP / precision-recall) is not evaluated by this protocol; metrics capture purely computational decode and resource consumption.
 - Results depend heavily on hardware acceleration availability; software CPU decode represents the worst-case scenario.
 - Video stream complexity (high entropy scenes with foliage) increases H.264/H.265 decode overhead compared to low entropy static scenes.
 - Network bandwidth consumption scales with resolution if substream vs mainstream are both pulled over the LAN.

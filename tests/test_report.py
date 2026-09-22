@@ -17,7 +17,7 @@ def test_generate_markdown_report_structure():
             "python_version": "3.10.11",
             "memory_total_bytes": 17179869184,
             "docker_available": True,
-            "frigate_version": "0.14.1",
+            "frigate_version": "0.18.0",
         },
         "streams": [
             {
@@ -76,7 +76,7 @@ def test_generate_markdown_report_structure():
     report = generate_markdown_report(data)
 
     assert "# Experiment Report: EXP-001" in report
-    assert "Frigate Version**: `0.14.1`" in report
+    assert "Frigate Version**: `0.18.0`" in report
     assert "rtsp://CAMERA_USERNAME:***@CAMERA_1_HOST/stream" in report
     assert "System CPU (%)" in report
     assert "camera_fps" in report

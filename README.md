@@ -8,6 +8,7 @@
 
 - **STATUS**: `EARLY RESEARCH TOOLING`
 - **UPSTREAM SOFTWARE**: [Frigate](https://github.com/blakeblackshear/frigate)
+- **BASELINE REFERENCE VERSION**: `Frigate 0.18.0` (`ghcr.io/blakeblackshear/frigate:0.18.0`)
 - **AUTHOR / MAINTAINER**: Rujul Talekar
 
 ---
@@ -23,9 +24,9 @@ Video surveillance systems present complex trade-offs across network ingestion, 
 ## Why This Lab Exists
 
 Deploying a real-time Video Management System with object detection at scale routinely exposes bottlenecks that are poorly understood in consumer and prosumer environments:
-1. **Decode vs. Inference Saturation**: CPU saturation frequently occurs during software video decoding *before* inference accelerators (e.g., Coral TPUs or NPUs) reach capacity.
+1. **Decode vs. Inference Saturation**: Video decoding can become a bottleneck before inference depending on hardware and stream configuration.
 2. **Camera Stream Limits**: Physical IP cameras often fail or drop packets when queried by multiple concurrent RTSP clients; utilizing a stream restreamer like go2rtc changes the connection topology.
-3. **Resolution Mismatch**: High-resolution video is necessary for forensic recording, yet passing high-resolution streams directly into motion detection creates catastrophic decode overhead with negligible accuracy gains.
+3. **Resolution Mismatch**: High-resolution video is necessary for forensic recording, yet passing high-resolution streams directly into motion detection may increase decode cost, which EXP-002 is designed to quantify.
 4. **Reproducibility Gap**: Anecdotal community configurations lack standardized benchmarking metrics, continuous time-series logging, and controlled independent variables.
 
 This repository bridges that gap by isolating each pipeline stage, capturing defensive telemetry, and enforcing strict privacy and credential safety.
@@ -43,7 +44,7 @@ flowchart TD
         C2["IP Camera 2 (Sub + Main)"]
     end
 
-    subgraph Frigate["Frigate Host Container"]
+    subgraph Frigate["Frigate Host Container (Pinned: 0.18.0)"]
         subgraph go2rtc["Integrated go2rtc Multiplexer"]
             Ingest["RTSP Ingestion"]
             LocalRestream["Local Restream Bus<br/>(127.0.0.1:8554)"]
@@ -54,7 +55,7 @@ flowchart TD
             DetectPipe["Detect Pipeline<br/>(Substream -> FFmpeg Decode -> Motion -> BBox Crop -> Detector)"]
             RecordPipe["Record Pipeline<br/>(Mainstream -> Stream Copy -> Segment Storage)"]
             LiveAPI["Live Streaming<br/>(WebRTC / MSE)"]
-            StatsAPI["Telemetry API<br/>(:5000/api/stats)"]
+            StatsAPI["Telemetry API<br/>(127.0.0.1:5000/api/stats)"]
         end
 
         LocalRestream -->|Substream: 720p @ 5fps| DetectPipe
@@ -76,7 +77,7 @@ flowchart TD
     C2 -->|RTSP Feeds| Ingest
 ```
 
-Detailed architectural specifications and pipeline flowcharts are documented in [`docs/ARCHITECTURE.md`](file:///docs/ARCHITECTURE.md).
+Detailed architectural specifications and pipeline flowcharts are documented in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
@@ -84,7 +85,7 @@ Detailed architectural specifications and pipeline flowcharts are documented in 
 
 The lab addresses ten foundational research questions:
 
-1. **Detection Stream Resolution**: How does detection stream resolution affect CPU utilization, memory pressure, and detection accuracy?
+1. **Detection Stream Resolution**: How does detection stream resolution affect resource usage? *(Note: Labeled ground-truth detection accuracy evaluation is reserved for future work).*
 2. **Main-Stream vs. Substream Detection**: What is the measured CPU overhead difference between running detection directly on high-resolution main-streams versus dedicated substreams?
 3. **go2rtc Restreaming Overhead**: What is the compute and memory footprint of go2rtc restreaming relative to direct ffmpeg ingestion?
 4. **Multi-Camera Concurrency**: How do multiple simultaneous camera feeds scale across CPU cores and memory channels on commodity hardware?
@@ -99,17 +100,20 @@ The lab addresses ten foundational research questions:
 
 ## Experiment Matrix
 
-Standardized, reproducible scientific protocols are housed in [`experiments/`](file:///experiments/):
+Standardized, reproducible scientific protocols are housed in [`experiments/`](experiments/):
 
 | Protocol ID | Title | Focus Area | Status |
 | :--- | :--- | :--- | :--- |
-| [`EXP-001`](file:///experiments/EXP-001-baseline.md) | Baseline Single-Camera Resource Profile | 1 Camera, 720p detect, 1080p record, CPU detector | `NOT YET MEASURED` |
-| [`EXP-002`](file:///experiments/EXP-002-stream-resolution.md) | Detect Stream Resolution Tradeoffs | 640×360 vs. 1280×720 vs. 1920×1080 | `NOT YET MEASURED` |
-| [`EXP-003`](file:///experiments/EXP-003-multi-camera-scaling.md) | Multi-Camera Stream Scaling | 1, 2, and 4 concurrent camera streams | `NOT YET MEASURED` |
+| [`EXP-001`](experiments/EXP-001-baseline.md) | Baseline Single-Camera Resource Profile | 1 Camera, 720p detect, 1080p record, CPU detector | `NOT YET MEASURED` |
+| [`EXP-002`](experiments/EXP-002-stream-resolution.md) | Detect Stream Resolution Tradeoffs | 640×360 vs. 1280×720 vs. 1920×1080 | `NOT YET MEASURED` |
+| [`EXP-003`](experiments/EXP-003-multi-camera-scaling.md) | Multi-Camera Stream Scaling | 1, 2, and 4 concurrent camera streams | `NOT YET MEASURED` |
 
 ---
 
-## Metrics Framework
+## Supported Telemetry (Metrics the Tooling Can Collect)
+
+> [!NOTE]
+> The metrics listed below define the capabilities of the automated collection tooling. Physical measurements on dedicated hardware have not yet been performed and are marked `NOT YET MEASURED`.
 
 The suite distinguishes pipeline rates defensively to eliminate ambiguous labeling:
 
@@ -119,7 +123,7 @@ The suite distinguishes pipeline rates defensively to eliminate ambiguous labeli
 - **`detection_fps`**: Rate of tensor inference executions dispatched to the object detector.
 - **System & Container Metrics**: Host CPU %, per-core CPU %, memory usage, load average (Linux), and Docker container stats.
 
-See [`docs/METRICS.md`](file:///docs/METRICS.md) for full mathematical definitions and sampling specifications.
+See [`docs/METRICS.md`](docs/METRICS.md) for full mathematical definitions and sampling specifications.
 
 ---
 
@@ -135,25 +139,31 @@ cd Frigate-VMS-Lab
 pip install -e .
 ```
 
-### 2. Validate Configuration Safety
+### 2. Configure Local Environment & Validate Safety
 
-Verify that your Frigate configuration is valid YAML and free of private IP or credential leaks:
+Instantiate your local configuration from the sanitized template:
 
 ```bash
-frigate-vms-lab validate-config configs/frigate.example.yml
+# Create local configuration (gitignored)
+cp configs/frigate.example.yml configs/frigate.local.yml
+
+# Validate syntax and verify zero private IP or credential leaks
+frigate-vms-lab validate-config configs/frigate.local.yml
 ```
 
-### 3. Deploy Lab Environment
+### 3. Deploy Reference Container
 
-Start the Frigate container using the reference Docker Compose definition:
+Start the Frigate container using the reference Docker Compose deployment:
 
 ```bash
 # Provide local RTSP password via environment variable
 export FRIGATE_RTSP_PASSWORD="your_camera_password"
 
-# Launch Frigate with integrated go2rtc
+# Launch Frigate with integrated go2rtc (pinned to 0.18.0, least privilege)
 docker compose -f docker/compose.example.yml up -d
 ```
+
+*(Note: Unauthenticated API port 5000 is bound strictly to `127.0.0.1` for local telemetry collection. Authenticated web UI access via port 8971 may be configured separately).*
 
 ### 4. Execute Benchmark Measurement
 
@@ -165,7 +175,7 @@ frigate-vms-lab collect \
   --duration 600 \
   --warmup 30 \
   --interval 1.0 \
-  --frigate-url http://localhost:5000 \
+  --frigate-url http://127.0.0.1:5000 \
   --container frigate \
   --output results/EXP-001_run.json \
   --csv results/EXP-001_timeseries.csv
@@ -190,32 +200,38 @@ frigate-vms-lab report results/EXP-001_run.json --output results/EXP-001_report.
 ```json
 {
   "experiment_id": "EXP-001",
-  "timestamp": "2026-09-23T04:45:00Z",
+  "physical_run_completed": false,
+  "timestamp": null,
   "duration_seconds": 600,
   "interval_seconds": 1.0,
   "warmup_seconds": 30,
   "environment": {
-    "platform": "Linux-6.8.0-generic-x86_64",
-    "python_version": "3.10.11",
-    "cpu_count_logical": 8,
-    "memory_total_bytes": 17179869184,
-    "docker_available": true,
-    "frigate_version": "0.14.1"
+    "platform": null,
+    "python_version": null,
+    "cpu_count_logical": null,
+    "memory_total_bytes": null,
+    "docker_available": null,
+    "frigate_version": null
   },
   "streams": [],
   "samples": [],
   "summary": {
+    "total_samples": 0,
     "system": {
       "cpu_percent": {
-        "sample_count": 600,
-        "mean": 14.82,
-        "median": 14.5,
-        "min": 11.2,
-        "max": 23.4,
-        "stdev": 1.84,
-        "p50": 14.5,
-        "p95": 18.2
+        "sample_count": 0,
+        "mean": null,
+        "median": null,
+        "min": null,
+        "max": null,
+        "stdev": null,
+        "p50": null,
+        "p95": null
       }
+    },
+    "docker": {},
+    "frigate": {
+      "cameras": {}
     }
   }
 }
@@ -225,16 +241,16 @@ frigate-vms-lab report results/EXP-001_run.json --output results/EXP-001_report.
 
 ```markdown
 # Experiment Report: EXP-001
-- Execution Timestamp (UTC): `2026-09-23T04:45:00Z`
-- Benchmark Duration: `600s` (Warm-up: `30s`)
-- Host Platform: `Linux-6.8.0-generic-x86_64`
+- Execution Timestamp (UTC): NOT YET MEASURED
+- Benchmark Duration: 600s (Warm-up: 30s)
+- Host Platform: NOT YET MEASURED
 
 | Camera | Pipeline Stage | Definition | Samples | Mean | Median | p95 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `camera_1` | `camera_fps` | Ingest / Consumed | 600 | 15.0 | 15.0 | 15.0 |
-| `camera_1` | `process_fps` | Decode / Processed | 600 | 5.0 | 5.0 | 5.0 |
-| `camera_1` | `skipped_fps` | Frame Drops | 600 | 0.0 | 0.0 | 0.0 |
-| `camera_1` | `detection_fps` | Detector Invocations | 600 | 4.8 | 4.8 | 5.0 |
+| `camera_1` | `camera_fps` | Ingest / Consumed | 0 | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED |
+| `camera_1` | `process_fps` | Decode / Processed | 0 | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED |
+| `camera_1` | `skipped_fps` | Frame Drops | 0 | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED |
+| `camera_1` | `detection_fps` | Detector Invocations | 0 | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED |
 ```
 
 ---
@@ -252,7 +268,7 @@ A strict boundary is maintained:
 - Defensive telemetry parsers for `/api/stats` and `/api/version`
 - Publication-quality Markdown report generator (`frigate-vms-lab report`)
 - Descriptive statistics engine (mean, median, stdev, p50, p95)
-- Standardized experiment protocols ([`EXP-001`](file:///experiments/EXP-001-baseline.md), [`EXP-002`](file:///experiments/EXP-002-stream-resolution.md), [`EXP-003`](file:///experiments/EXP-003-multi-camera-scaling.md))
+- Standardized experiment protocols ([`EXP-001`](experiments/EXP-001-baseline.md), [`EXP-002`](experiments/EXP-002-stream-resolution.md), [`EXP-003`](experiments/EXP-003-multi-camera-scaling.md))
 - Sanitized configuration templates with `{FRIGATE_...}` substitution
 - Automated CI test suite and credential safety validation
 
@@ -267,9 +283,9 @@ A strict boundary is maintained:
 
 ## Reproducibility & Privacy
 
-- **Privacy Protocol**: Strictly enforces zero private footage, no sensitive camera IP addresses, and automated password redaction (`***`). See [`docs/PRIVACY.md`](file:///docs/PRIVACY.md).
-- **Research Methodology**: Governed by the four-phase pipeline: *Configured State $\rightarrow$ Observed State $\rightarrow$ Measured Behavior $\rightarrow$ Defensible Conclusion*. See [`docs/METHODOLOGY.md`](file:///docs/METHODOLOGY.md).
-- **Hardware Documentation**: Hardware environments must be documented using the neutral template in [`docs/HARDWARE.md`](file:///docs/HARDWARE.md). Windows/WSL2 is categorized as `EXPERIMENTAL / DEVELOPMENT ENVIRONMENT`.
+- **Privacy Protocol**: Strictly enforces zero private footage, no sensitive camera IP addresses, and automated password redaction (`***`). See [`docs/PRIVACY.md`](docs/PRIVACY.md).
+- **Research Methodology**: Governed by the four-phase pipeline: *Configured State $\rightarrow$ Observed State $\rightarrow$ Measured Behavior $\rightarrow$ Defensible Conclusion*. See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
+- **Hardware Documentation**: Hardware environments must be documented using the neutral template in [`docs/HARDWARE.md`](docs/HARDWARE.md). Windows/WSL2 is categorized as `EXPERIMENTAL / DEVELOPMENT ENVIRONMENT`.
 
 ---
 
@@ -277,7 +293,7 @@ A strict boundary is maintained:
 
 - Descriptive observations reflect tested physical conditions only; results do not transfer across differing silicon or sensor architectures without re-measurement.
 - Scene motion entropy and camera compression codecs introduce variability.
-- Full methodological boundaries are detailed in [`docs/LIMITATIONS.md`](file:///docs/LIMITATIONS.md).
+- Full methodological boundaries are detailed in [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md).
 
 ---
 
@@ -285,7 +301,7 @@ A strict boundary is maintained:
 
 - [x] Standardized experiment protocols (EXP-001, EXP-002, EXP-003)
 - [x] Defensive telemetry collectors and CLI tooling
-- [x] Sanitized reference configurations with integrated go2rtc
+- [x] Sanitized reference configurations with integrated go2rtc (pinned to 0.18.0)
 - [x] Config safety and credential leak detection in CI
 - [ ] Physical execution of EXP-001 single-camera baseline on Linux x86 hardware
 - [ ] Physical execution of EXP-002 resolution comparative trials
@@ -300,6 +316,7 @@ A strict boundary is maintained:
 This project is an independent research and benchmarking lab that interoperates with:
 
 - **Upstream Project**: [Frigate](https://github.com/blakeblackshear/frigate)
+- **Baseline Reference Version**: `0.18.0`
 - **Upstream License**: MIT License
 - **Upstream Copyright**:
   ```text
@@ -326,4 +343,4 @@ If you reference this research framework or tooling in your work, please cite:
   version = {0.1.0}
 }
 ```
-Or use the provided [`CITATION.cff`](file:///CITATION.cff) file.
+Or use the provided [`CITATION.cff`](CITATION.cff) file.

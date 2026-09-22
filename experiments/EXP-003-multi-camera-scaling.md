@@ -16,7 +16,7 @@ Resource utilization will scale sub-linearly with stream count when go2rtc restr
 
 ## CONTROLLED VARIABLES
 
-- **Upstream Engine**: Frigate `v0.14+` running in Linux Docker container.
+- **Upstream Engine**: Frigate `v0.18.0` running in Linux Docker container.
 - **Per-Camera Detect Stream**: 1280×720 @ 5 fps.
 - **Per-Camera Record Stream**: 1920×1080 @ 15 fps (retained continuously).
 - **Detector**: Software CPU detector (allocated thread pool: 4 threads).
@@ -48,8 +48,8 @@ Resource utilization will scale sub-linearly with stream count when go2rtc restr
 ## PROCEDURE
 
 1. Deploy condition configuration:
-   - For 1 camera: use [`configs/frigate.example.yml`](file:///configs/frigate.example.yml)
-   - For 2 cameras: use [`configs/two-camera.example.yml`](file:///configs/two-camera.example.yml)
+   - For 1 camera: use [`../configs/frigate.example.yml`](../configs/frigate.example.yml) copied to `configs/frigate.local.yml`.
+   - For 2 cameras: use [`../configs/two-camera.example.yml`](../configs/two-camera.example.yml) copied to `configs/frigate.local.yml`.
    - For 4 cameras: extend configuration template with four RTSP streams.
 2. Start Frigate container and verify all camera pipelines in Web UI.
 3. Allow 30 seconds of warm-up.
@@ -60,7 +60,7 @@ Resource utilization will scale sub-linearly with stream count when go2rtc restr
      --duration 300 \
      --warmup 30 \
      --interval 1.0 \
-     --frigate-url http://localhost:5000 \
+     --frigate-url http://127.0.0.1:5000 \
      --container frigate \
      --output results/EXP-003_cam_<1|2|4>.json \
      --csv results/EXP-003_cam_<1|2|4>.csv

@@ -61,4 +61,6 @@ detectors:
     type: cpu
     num_threads: 2
 
-version: 0.14
+# Baseline reference version: Frigate 0.18.0
+# Future versions may require config/schema updates.
+version: 0.18

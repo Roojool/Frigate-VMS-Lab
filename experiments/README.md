@@ -23,9 +23,9 @@ Every experiment protocol follows a rigorous, reproducible structure:
 
 | ID | Title | Independent Variable | Test Conditions | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| [`EXP-001`](file:///experiments/EXP-001-baseline.md) | Baseline Single-Camera Resource Profile | Baseline Profile | 1 camera, 720p detect, 1080p record, CPU detector | `NOT YET MEASURED` |
-| [`EXP-002`](file:///experiments/EXP-002-stream-resolution.md) | Detect Stream Resolution Tradeoffs | Detection Resolution | 640×360, 1280×720, 1920×1080 | `NOT YET MEASURED` |
-| [`EXP-003`](file:///experiments/EXP-003-multi-camera-scaling.md) | Multi-Camera Stream Scaling | Stream Concurrency | 1 Camera, 2 Cameras, 4 Cameras | `NOT YET MEASURED` |
+| [`EXP-001`](EXP-001-baseline.md) | Baseline Single-Camera Resource Profile | Baseline Profile | 1 camera, 720p detect, 1080p record, CPU detector | `NOT YET MEASURED` |
+| [`EXP-002`](EXP-002-stream-resolution.md) | Detect Stream Resolution Tradeoffs | Detection Resolution | 640×360, 1280×720, 1920×1080 | `NOT YET MEASURED` |
+| [`EXP-003`](EXP-003-multi-camera-scaling.md) | Multi-Camera Stream Scaling | Stream Concurrency | 1 Camera, 2 Cameras, 4 Cameras | `NOT YET MEASURED` |
 
 ---
 
@@ -34,10 +34,13 @@ Every experiment protocol follows a rigorous, reproducible structure:
 To execute an experiment protocol locally without exposing credentials:
 
 ```bash
+# Instantiate user-specific local configuration
+cp configs/frigate.example.yml configs/frigate.local.yml
+
 # Set local camera password in environment
 export FRIGATE_RTSP_PASSWORD="your_actual_password"
 
-# Launch Frigate with the designated test configuration
+# Launch Frigate with the reference Docker Compose deployment
 docker compose -f docker/compose.example.yml up -d
 
 # Execute the experiment collector with warm-up stabilization

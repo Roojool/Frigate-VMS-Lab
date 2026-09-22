@@ -1,41 +1,48 @@
 # ==============================================================================
-# Frigate VMS Lab - Docker Compose Example
+# Frigate VMS Lab - Docker Compose Reference Deployment
 # Architecture: Frigate with Integrated go2rtc
+# Baseline Reference Version: Frigate 0.18.0
 # ==============================================================================
 # Notes:
-# 1. Frigate embeds its own integrated go2rtc instance by default.
-#    A separate standalone go2rtc container is NOT needed for standard deployments.
-# 2. Variable interpolation syntax distinction:
-#    - Here in compose.yml, Docker uses: ${VARIABLE_NAME}
-#    - Inside frigate.yml, Frigate uses: {FRIGATE_VARIABLE_NAME}
-# 3. Target Environment: Supported Linux Docker host.
+# 1. Image Pinning: Pinned to ghcr.io/blakeblackshear/frigate:0.18.0 for
+#    reproducible research baseline. Future versions may require config updates.
+# 2. Local Config Workflow:
+#    - configs/frigate.example.yml = committed sanitized template
+#    - configs/frigate.local.yml   = user-specific local config (gitignored)
+#    Create local config before launching:
+#      cp configs/frigate.example.yml configs/frigate.local.yml
+# 3. Security & Least Privilege:
+#    - 'privileged: true' is omitted for CPU-only baseline evaluation.
+#    - Unauthenticated API (port 5000) is bound locally to 127.0.0.1 for collector access.
+#    - Authenticated UI port (8971) can be exposed separately if remote UI is desired.
+# 4. Target Environment: Native Linux with Docker Engine.
 #    (WSL2 / Windows is an EXPERIMENTAL / DEVELOPMENT ENVIRONMENT).
 # ==============================================================================
 
 services:
   frigate:
     container_name: frigate
-    privileged: true
     restart: unless-stopped
-    image: ghcr.io/blakeblackshear/frigate:stable
+    image: ghcr.io/blakeblackshear/frigate:0.18.0
     shm_size: "256mb" # Adjust based on camera resolution and stream count
-    devices:
-      # Optional: Hardware acceleration devices (uncomment if validating hardware acceleration)
+    # devices:
+      # Optional: Hardware acceleration devices (uncomment for hardware evaluation)
       # - /dev/dri/renderD128:/dev/dri/renderD128 # Intel VAAPI / QSV
       # - /dev/apex_0:/dev/apex_0               # Google Coral PCIe TPU
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./configs/frigate.yml:/config/config.yml:ro
-      - ./storage:/media/frigate
+      - ../configs/frigate.local.yml:/config/config.yml:ro
+      - ../storage:/media/frigate
       - type: tmpfs
         target: /tmp/cache
         tmpfs:
           size: 1000000000 # 1GB RAM cache for recording segments
     ports:
-      - "5000:5000"       # Frigate Web UI & REST API
-      - "8554:8554"       # Integrated go2rtc RTSP restreaming feeds
-      - "8555:8555/tcp"   # Integrated go2rtc WebRTC signalling
-      - "8555:8555/udp"   # Integrated go2rtc WebRTC media
+      - "127.0.0.1:5000:5000" # Local unauthenticated REST API & telemetry (collector)
+      # - "8971:8971"         # Authenticated Frigate Web UI (optional for LAN access)
+      - "8554:8554"           # Integrated go2rtc RTSP restreaming feeds
+      - "8555:8555/tcp"       # Integrated go2rtc WebRTC signalling
+      - "8555:8555/udp"       # Integrated go2rtc WebRTC media
     environment:
       # Pass through credential environment variables for Frigate {FRIGATE_...} substitution
       FRIGATE_RTSP_PASSWORD: ${FRIGATE_RTSP_PASSWORD}

@@ -16,7 +16,7 @@ A single IP camera utilizing a separate low-resolution substream (1280×720 @ 5 
 
 ## CONTROLLED VARIABLES
 
-- **Upstream Engine**: Frigate `v0.14+` running in Linux Docker container.
+- **Upstream Engine**: Frigate `v0.18.0` running in Linux Docker container.
 - **Detector**: Software CPU detector (2 threads).
 - **Stream Ingestion**: Frigate-integrated go2rtc restreaming.
 - **Recording Role**: Mainstream (1080p, continuous 24/7 retention mode).
@@ -46,25 +46,29 @@ A single IP camera utilizing a separate low-resolution substream (1280×720 @ 5 
 
 ## PROCEDURE
 
-1. Deploy Frigate container on target Linux host using [`docker/compose.example.yml`](file:///docker/compose.example.yml) and [`configs/frigate.example.yml`](file:///configs/frigate.example.yml).
-2. Set local camera authentication token:
+1. Instantiate local configuration from template:
+   ```bash
+   cp configs/frigate.example.yml configs/frigate.local.yml
+   ```
+2. Deploy Frigate container on target Linux host using [`../docker/compose.example.yml`](../docker/compose.example.yml) and [`../configs/frigate.example.yml`](../configs/frigate.example.yml).
+3. Set local camera authentication token:
    ```bash
    export FRIGATE_RTSP_PASSWORD="<local-secret>"
    ```
-3. Verify stream health in Frigate Web UI (`http://localhost:5000`).
-4. Execute the baseline collector:
+4. Verify stream health in Frigate Web UI (`http://127.0.0.1:5000`).
+5. Execute the baseline collector:
    ```bash
    frigate-vms-lab collect \
      --experiment-id EXP-001 \
      --duration 600 \
      --warmup 30 \
      --interval 1.0 \
-     --frigate-url http://localhost:5000 \
+     --frigate-url http://127.0.0.1:5000 \
      --container frigate \
      --output results/EXP-001_run.json \
      --csv results/EXP-001_timeseries.csv
    ```
-5. Generate the analysis and markdown report:
+6. Generate the analysis and markdown report:
    ```bash
    frigate-vms-lab analyze results/EXP-001_run.json
    frigate-vms-lab report results/EXP-001_run.json --output results/EXP-001_report.md

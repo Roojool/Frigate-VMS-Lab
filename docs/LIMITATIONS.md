@@ -36,3 +36,9 @@ While synthetic video generators (e.g., FFmpeg looping test videos into an RTSP 
 Upstream Frigate and go2rtc are under active development. Optimizations, refactored FFmpeg filtergraphs, or changes in shared memory buffer structures between minor releases can alter benchmark metrics. Consequently:
 - All reported benchmarks must document the exact upstream container release tag and go2rtc version.
 - Cross-version comparisons must explicitly control for configuration syntax alterations.
+
+---
+
+## 5. Scope of Detection Metrics vs. Model Accuracy
+
+The instrumentation provided by this lab captures computational pipeline performance (frame ingestion rates, decode throughput, frame drops, and detector invocation frequency). It does **not** evaluate labeled ground-truth object detection accuracy (such as mean Average Precision [mAP] or precision-recall curves against ground-truth datasets). Quantifying detection accuracy across resolution degradation is designated as future work; current metrics strictly measure resource cost and execution rates.
